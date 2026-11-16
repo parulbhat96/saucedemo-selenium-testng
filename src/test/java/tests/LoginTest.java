@@ -1,35 +1,31 @@
 package tests;
 
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import pages.InventoryPage;
 import pages.LoginPage;
+import utils.ExcelUtils;
 
 public class LoginTest extends BaseTest {
 
-    @Test
-    public void validLogin() {
-        LoginPage loginPage = new LoginPage(driver);
-        loginPage.login("standard_user", "secret_sauce");
-
-        InventoryPage inventoryPage = new InventoryPage(driver);
-        Assert.assertEquals(inventoryPage.getPageTitle(), "Products");
+    @DataProvider(name = "loginData")
+    public Object[][] getLoginData() {
+        return ExcelUtils.getSheetData("testdata/LoginData.xlsx", "Login");
     }
 
-    @Test
-    public void invalidLogin() {
+    @Test(dataProvider = "loginData")
+    public void loginTest(String username, String password, String expectedResult) {
         LoginPage loginPage = new LoginPage(driver);
-        loginPage.login("standard_user", "wrong_password");
+        loginPage.login(username, password);
 
-        Assert.assertTrue(loginPage.getErrorMessage().contains("do not match"));
-    }
-
-    @Test
-    public void lockedOutUser() {
-        LoginPage loginPage = new LoginPage(driver);
-        loginPage.login("locked_out_user", "secret_sauce");
-
-        Assert.assertTrue(loginPage.getErrorMessage().contains("locked out"));
+        if (expectedResult.equals("success")) {
+            InventoryPage inventoryPage = new InventoryPage(driver);
+            Assert.assertEquals(inventoryPage.getPageTitle(), "Products");
+        } else {
+            Assert.assertTrue(loginPage.getErrorMessage().contains(expectedResult),
+                    "Expected error containing: " + expectedResult);
+        }
     }
 }
